@@ -22,22 +22,32 @@ start = DummyOperator(task_id='start', dag=dag)
 
 
 def get_product_upc_and_description():
-    df = pandas.read_csv('./data/products-lookup-table.csv', header=1)
+    df = pandas.read_csv('./dataset/products-lookup-table.csv', header=1)
     new_df = df[['UPC', 'DESCRIPTION']]
-    new_df.to_csv('./cleaned_data/product_upc_and_description.csv', index=False)
+    new_df.to_csv('./dataset/product_upc_and_description.csv', index=False)
+
+def remove_outliers():
+    df = pandas.read
+
+remove_outliers = PythonOperator(
+    task_id='remove_outliers',
+    python_callable=remove_outliers,
+    dag=dag
+)
+
 
 def get_upc_and_price():
-    df = pandas.read_csv('./data/transactions.csv', header=1)
+    df = pandas.read_csv('./dataset/transactions.csv', header=1)
     new_df = df[['UPC', 'PRICE']]
-    new_df.to_csv('./cleaned_data/upc_and_price.csv', index=False)
+    new_df.to_csv('./dataset/upc_and_price.csv', index=False)
 
 def merge():
-    df_product_description = pandas.read_csv('./cleaned_data/product_upc_and_description.csv')
-    df_product_price = pandas.read_csv('./cleaned_data/upc_and_price.csv')
+    df_product_description = pandas.read_csv('./dataset/product_upc_and_description.csv')
+    df_product_price = pandas.read_csv('./dataset/upc_and_price.csv')
 
     new_df = pandas.merge(df_product_description, df_product_price, left_on='UPC', right_on='UPC')
     # new_df = df_product_description.join(df_product_price, on='UPC', how='left')
-    new_df.to_csv('./cleaned_data/product_and_price.csv', index=False)
+    new_df.to_csv('./dataset/product_and_price.csv', index=False)
 
 get_product_upc_and_description = PythonOperator(
     task_id='get_product_upc_and_description',

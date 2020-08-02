@@ -27,7 +27,10 @@ def get_product_upc_and_description():
     new_df.to_csv('./dataset/product_upc_and_description.csv', index=False)
 
 def remove_outliers():
-    df = pandas.read
+    df = pandas.read_csv('./dataset/transactions.csv', header=1)
+    valid_data = df['UNITS'] >= df['VISITS']
+    new_df = df[valid_data]
+    new_df.to_csv('./dataset/cleaned_transactions.csv', index=False)
 
 remove_outliers = PythonOperator(
     task_id='remove_outliers',
@@ -37,7 +40,7 @@ remove_outliers = PythonOperator(
 
 
 def get_upc_and_price():
-    df = pandas.read_csv('./dataset/transactions.csv', header=1)
+    df = pandas.read_csv('./dataset/cleaned_transactions.csv', header=0)
     new_df = df[['UPC', 'PRICE']]
     new_df.to_csv('./dataset/upc_and_price.csv', index=False)
 
@@ -67,7 +70,20 @@ merge = PythonOperator(
     dag=dag
 )
 
+def include_vat():
+    df = pandas.read_csv('./dataset/product_and_price.csv')
+    df['PRICE_WITH_VAT'] = df['PRICE'] * 1.08
+    df.to_csv('./dataset/product_and_price_with_vat.csv', index=False)
+
+include_vat = PythonOperator(
+    task_id='include_vat',
+    python_callable=include_vat,
+    dag=dag
+)
 
 end = DummyOperator(task_id='end', dag=dag)
 
-start >> [get_product_upc_and_description, get_upc_and_price] >> merge >> end
+start >> [get_product_upc_and_description, remove_outliers]
+get_product_upc_and_description >> merge
+remove_outliers >> get_upc_and_price >> merge
+merge >> include_vat >> end

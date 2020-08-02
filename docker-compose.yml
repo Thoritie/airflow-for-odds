@@ -6,6 +6,7 @@ services:
       - POSTGRES_USER=airflow
       - POSTGRES_PASSWORD=airflow
       - POSTGRES_DB=airflow
+
   webserver:
     image: puckel/docker-airflow
     restart: always
@@ -13,13 +14,54 @@ services:
       - postgres
     environment:
       - AIRFLOW__CORE__LOAD_EXAMPLES=False
-      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
-      - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgres://airflow:airflow@postgres:5432/airflow
+      - AIRFLOW__CORE__EXECUTOR=CeleryExecutor
+      # - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgres://airflow:airflow@postgres:5432/airflow
     volumes:
       - ./airflow/dags:/usr/local/airflow/dags
-      - ./cleaned_data:/usr/local/cleaned_data
-      - ./data:/usr/local/data
       - ./dataset:/usr/local/airflow/dataset
     ports:
       - "8080:8080"
     command: webserver
+
+  redis:
+    image: 'redis:5.0.5'
+
+  scheduler:
+    image: puckel/docker-airflow
+    restart: always
+    depends_on:
+      - postgres
+    environment:
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+      - AIRFLOW__CORE__EXECUTOR=CeleryExecutor
+      # - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgres://airflow:airflow@postgres:5432/airflow
+    volumes:
+      - ./airflow/dags:/usr/local/airflow/dags
+    command: scheduler
+
+  worker:
+    image: puckel/docker-airflow
+    restart: always
+    depends_on:
+      - postgres
+    environment:
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+      - AIRFLOW__CORE__EXECUTOR=CeleryExecutor
+      # - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgres://airflow:airflow@postgres:5432/airflow
+    volumes:
+      - ./airflow/dags:/usr/local/airflow/dags
+      - ./dataset:/usr/local/airflow/dataset
+    command: worker
+
+  flower:
+    image: puckel/docker-airflow
+    restart: always
+    depends_on:
+      - redis
+    environment:
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+      - AIRFLOW__CORE__EXECUTOR=CeleryExecutor
+      # - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgres://airflow:airflow@postgres:5432/airflow
+    ports:
+      - "5555:5555"
+    command: flower
